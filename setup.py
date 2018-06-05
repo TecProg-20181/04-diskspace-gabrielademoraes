@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from contracts import contract, new_contract
 from setuptools import setup, find_packages
 import os
 
@@ -8,8 +9,13 @@ import os
 # Used for the long_description.  It's nice, because now 1) we have a top level
 # README file and 2) it's easier to type in the README file than to put a raw
 # string in below ...
+
+new_contract('valid_fname', lambda fname: isinstance(fname, str) and len(fname)>0)
+new_contract('valid_read_return', lambda read_return: isinstance(read_return, str) and len(read_return)>0)
+@contract(fname='valid_fname', returns='valid_read_return')
 def read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+    read_return = open(os.path.join(os.path.dirname(__file__), fname)).read()
+    return read_return
 
 REQUIREMENTS = []
 EXCLUDE_FROM_PACKAGES = []

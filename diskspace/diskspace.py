@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+from contracts import contract, new_contract
 
 import argparse
 import os
@@ -35,11 +36,17 @@ args = parser.parse_args()
 
 
 # ==== Disk Space ====
-
+new_contract('valid_command', lambda command: isinstance(command, str) and len(command)>0)
+new_contract('valid_subprocess_output', lambda subprocess_output: isinstance(subprocess_output, str)
+                and len(subprocess_output)>0)
+@contract(command='valid_command', returns='valid_subprocess_output')
 def subprocess_check_output(command):
-    return subprocess.check_output(command.strip().split(' '))
+    subprocess_output = subprocess.check_output(command.strip().split(' '))
+    return subprocess_output
 
-
+new_contract('valid_readable_bytes', lambda str_readable_bytes: isinstance(str_readable_bytes, str)
+                and len(str_readable_bytes)>0)
+@contract(blocks='int, >0', returns='valid_readable_bytes')
 def bytes_to_readable(blocks):
     byts = blocks * 512
     readable_bytes = byts
@@ -49,9 +56,13 @@ def bytes_to_readable(blocks):
         count += 1
 
     labels = ['B', 'Kb', 'Mb', 'Gb', 'Tb']
-    return '{:.2f}{}'.format(round(byts/(1024.0**count), 2), labels[count])
+    str_readable_bytes = '{:.2f}{}'.format(round(byts/(1024.0**count), 2), labels[count])
+    return str_readable_bytes
 
-
+new_contract('valid_path', lambda path: isinstance(path, str) and len(path)>0)
+@contract(file_tree = 'dict',
+            file_tree_node = 'dict(str: valid_readable_bytes | list[N], N >= 0|int, > 0)',path = 'valid_path',
+            largest_size='int, >=6', total_size='int, >=4', depth='int, >=0', returns='NoneType')
 def print_tree(file_tree, file_tree_node, path, largest_size, total_size,
                depth=0):
     percentage = int(file_tree_node['size'] / float(total_size) * 100)
@@ -71,8 +82,10 @@ def print_tree(file_tree, file_tree_node, path, largest_size, total_size,
             print_tree(file_tree, file_tree[child], child, largest_size,
                        total_size, depth + 1)
 
-
+new_contract('valid_directory', lambda directory: isinstance(directory, str) and len(directory)>1)
+@contract(directory='valid_directory',depth='int, >=-1',order='bool')
 def show_space_list(directory='.', depth=-1, order=True):
+
     abs_directory = os.path.abspath(directory)
 
     cmd = 'du '
@@ -137,8 +150,7 @@ def show_space_list(directory='.', depth=-1, order=True):
     print(' ' * max(0, largest_size - len('Size')) + 'Size   (%)  File')
     print_tree(file_tree, file_tree[abs_directory], abs_directory,
                largest_size, total_size)
-
-
+               
 def main():
     if not args.all:
         show_space_list(args.directory, args.depth,
